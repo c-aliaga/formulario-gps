@@ -2,94 +2,62 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Formulario GPS - Prototipo seguimiento vehicular</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prototipo para seguimiento de unidades vehiculares en el terminal</title>
 <style>
   body {
     font-family: Arial, sans-serif;
-    font-size: 1.5rem;
-    margin: 20px;
-    background: #f5f5f5;
-  }
-  h1 {
-    color: #333;
-    font-size: 2rem;
-    margin-bottom: 10px;
-  }
-  p.prototipo {
-    font-weight: bold;
-    margin-bottom: 20px;
-    color: #555;
+    padding: 20px;
+    font-size: 18px;
   }
   label, input, button {
-    font-size: 1.5rem;
+    display: block;
+    margin: 10px 0;
   }
-  input {
+  input, button {
+    font-size: 18px;
     padding: 8px;
     width: 100%;
     max-width: 400px;
-    margin-bottom: 20px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
   }
-  button {
-    padding: 12px 24px;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  button:disabled {
-    background: #aaa;
-    cursor: default;
-  }
-  #mensaje {
+  #message {
     margin-top: 20px;
     font-weight: bold;
-    color: #b00;
   }
 </style>
 </head>
 <body>
+
 <h1>Prototipo para seguimiento de unidades vehiculares en el terminal</h1>
-<p class="prototipo">Por favor, ingresa la placa y pulsa "Enviar ubicación". El navegador solicitará acceso a tu ubicación GPS.</p>
 
 <form id="gpsForm">
-  <label for="placa">Placa del camión:</label><br />
-  <input type="text" id="placa" name="placa" required pattern="[A-Za-z0-9\-]+" title="Solo letras, números y guiones" /><br />
+  <label for="placa">Ingrese la placa del camión:</label>
+  <input type="text" id="placa" name="placa" required autocomplete="off" />
   <button type="submit">Enviar ubicación</button>
 </form>
 
-<div id="mensaje"></div>
+<div id="message"></div>
 
 <script>
-const webhookURL = 'https://webhook.site/85a120fa-e629-4b44-bbd5-3e2ab71ae9bf';
+  const webhookURL = 'https://webhook.site/410a90a1-0dd5-4dd9-9221-12716b8c8d93';
 
-const mensajeEl = document.getElementById('mensaje');
-const form = document.getElementById('gpsForm');
+  const form = document.getElementById('gpsForm');
+  const messageDiv = document.getElementById('message');
 
-form.addEventListener('submit', e => {
-  e.preventDefault();
-  mensajeEl.style.color = '#b00';
-  mensajeEl.textContent = '';
-  const placa = form.placa.value.trim();
-  if (!placa) {
-    mensajeEl.textContent = 'Por favor, ingresa la placa.';
-    return;
-  }
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    messageDiv.textContent = 'Obteniendo ubicación...';
 
-  if (!navigator.geolocation) {
-    mensajeEl.textContent = 'La geolocalización no está soportada por este navegador.';
-    return;
-  }
+    if (!navigator.geolocation) {
+      messageDiv.textContent = 'Geolocalización no soportada en este navegador.';
+      return;
+    }
 
-  mensajeEl.textContent = 'Obteniendo ubicación...';
+    navigator.geolocation.getCurrentPosition(success, error, { enableHighAccuracy: true });
 
-  navigator.geolocation.getCurrentPosition(
-    position => {
+    function success(position) {
       const data = {
-        placa,
+        placa: form.placa.value.trim(),
         timestamp: new Date().toISOString(),
         coords: {
           lat: position.coords.latitude,
@@ -105,30 +73,22 @@ form.addEventListener('submit', e => {
       })
       .then(res => {
         if (res.ok) {
-          mensajeEl.style.color = 'green';
-          mensajeEl.textContent = 'Ubicación enviada correctamente.';
+          messageDiv.textContent = 'Ubicación enviada correctamente.';
           form.reset();
         } else {
-          mensajeEl.style.color = 'red';
-          mensajeEl.textContent = 'Error al enviar la ubicación.';
+          messageDiv.textContent = 'Error al enviar la ubicación.';
         }
       })
       .catch(() => {
-        mensajeEl.style.color = 'red';
-        mensajeEl.textContent = 'Error al enviar la ubicación.';
+        messageDiv.textContent = 'Error al enviar la ubicación.';
       });
-    },
-    error => {
-      mensajeEl.style.color = 'red';
-      if (error.code === error.PERMISSION_DENIED) {
-        mensajeEl.textContent = 'Permite el acceso al GPS para enviar la ubicación.';
-      } else {
-        mensajeEl.textContent = 'No se pudo obtener la ubicación. Intenta de nuevo.';
-      }
-    },
-    { enableHighAccuracy: true, timeout: 10000 }
-  );
-});
+    }
+
+    function error() {
+      messageDiv.textContent = 'No se pudo obtener la ubicación. Por favor, permite el acceso al GPS.';
+    }
+  });
 </script>
+
 </body>
 </html>
