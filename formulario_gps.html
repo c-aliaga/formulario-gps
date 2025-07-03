@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Formulario GPS - Prototipo seguimiento vehicular</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 1.5rem;
+    margin: 20px;
+    background: #f5f5f5;
+  }
+  h1 {
+    color: #333;
+    font-size: 2rem;
+    margin-bottom: 10px;
+  }
+  p.prototipo {
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #555;
+  }
+  label, input, button {
+    font-size: 1.5rem;
+  }
+  input {
+    padding: 8px;
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  button {
+    padding: 12px 24px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  button:disabled {
+    background: #aaa;
+    cursor: default;
+  }
+  #mensaje {
+    margin-top: 20px;
+    font-weight: bold;
+    color: #b00;
+  }
+</style>
+</head>
+<body>
+<h1>Prototipo para seguimiento de unidades vehiculares en el terminal</h1>
+<p class="prototipo">Por favor, ingresa la placa y pulsa "Enviar ubicación". El navegador solicitará acceso a tu ubicación GPS.</p>
+
+<form id="gpsForm">
+  <label for="placa">Placa del camión:</label><br />
+  <input type="text" id="placa" name="placa" required pattern="[A-Za-z0-9\-]+" title="Solo letras, números y guiones" /><br />
+  <button type="submit">Enviar ubicación</button>
+</form>
+
+<div id="mensaje"></div>
+
+<script>
+const webhookURL = 'https://webhook.site/85a120fa-e629-4b44-bbd5-3e2ab71ae9bf';
+
+const mensajeEl = document.getElementById('mensaje');
+const form = document.getElementById('gpsForm');
+
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  mensajeEl.style.color = '#b00';
+  mensajeEl.textContent = '';
+  const placa = form.placa.value.trim();
+  if (!placa) {
+    mensajeEl.textContent = 'Por favor, ingresa la placa.';
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    mensajeEl.textContent = 'La geolocalización no está soportada por este navegador.';
+    return;
+  }
+
+  mensajeEl.textContent = 'Obteniendo ubicación...';
+
+  navigator.geolocation.getCurrentPosition(
+    position => {
+      const data = {
+        placa,
+        timestamp: new Date().toISOString(),
+        coords: {
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        }
+      };
+
+      fetch(webhookURL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      .then(res => {
+        if (res.ok) {
+          mensajeEl.style.color = 'green';
+          mensajeEl.textContent = 'Ubicación enviada correctamente.';
+          form.reset();
+        } else {
+          mensajeEl.style.color = 'red';
+          mensajeEl.textContent = 'Error al enviar la ubicación.';
+        }
+      })
+      .catch(() => {
+        mensajeEl.style.color = 'red';
+        mensajeEl.textContent = 'Error al enviar la ubicación.';
+      });
+    },
+    error => {
+      mensajeEl.style.color = 'red';
+      if (error.code === error.PERMISSION_DENIED) {
+        mensajeEl.textContent = 'Permite el acceso al GPS para enviar la ubicación.';
+      } else {
+        mensajeEl.textContent = 'No se pudo obtener la ubicación. Intenta de nuevo.';
+      }
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+});
+</script>
+</body>
+</html>
